@@ -3,36 +3,64 @@
 #include "Timer.h"
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <chrono>
 #include <thread>
+#include <vector>
 
 using namespace std;
 using namespace chrono;
 
-void processFile(MyStruct& data, const string& filename) {
+string loadFile(const string& filename) {
     ifstream file(filename);
     if (!file.is_open()) {
         cerr << "Error opening file: " << filename << endl;
-        return;
+        return "";
     }
+    stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
 
+void processCommands(MyStruct& data, const string& commands) {
+    istringstream stream(commands);
     string operation;
-    while (file >> operation) {
+
+    while (stream >> operation) {
         if (operation == "read") {
             int index;
-            file >> index;
+            stream >> index;
             data.read(index);
         }
         else if (operation == "write") {
             int index, value;
-            file >> index >> value;
+            stream >> index >> value;
             data.write(index, value);
         }
         else if (operation == "string") {
             data.toString();
         }
     }
-    file.close();
+}
+
+template<typename Func>
+double measureExecution(Func&& func) {
+    Timer timer;
+    func();
+    return timer.elapsed_ms();
+}
+
+void runThreads(MyStruct& data, int threadCount, const string& pattern, const vector<string>& fileContents) {
+    vector<thread> threads;
+    threads.reserve(threadCount);
+
+    for (int i = 0; i < threadCount; i++) {
+        threads.emplace_back(processCommands, ref(data), ref(fileContents[i]));
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
 }
 
 int main() {
@@ -47,79 +75,43 @@ int main() {
     }
 
     MyStruct data;
-    Timer timer;
+    vector<string> patterns = {"matching", "equal", "custom"};
 
+    // 1 thread
     cout << "\n--- 1 thread ---\n";
+    for (const auto& pattern : patterns) {
+        string content = loadFile("test_1thread_" + pattern + ".txt");
+        double time = measureExecution([&]() {
+            processCommands(data, content);
+        });
+        cout << pattern << ": " << time << " ms\n";
+    }
 
-    timer.reset();
-    processFile(data, "test_1thread_matching.txt");
-    cout << "Matching: " << timer.elapsed_ms() << " ms\n";
-
-    timer.reset();
-    processFile(data, "test_1thread_equal.txt");
-    cout << "Equal: " << timer.elapsed_ms() << " ms\n";
-
-    timer.reset();
-    processFile(data, "test_1thread_custom.txt");
-    cout << "Custom: " << timer.elapsed_ms() << " ms\n";
-
+    // 2 threads
     cout << "\n--- 2 threads ---\n";
+    for (const auto& pattern : patterns) {
+        vector<string> contents;
+        for (int i = 1; i <= 2; i++) {
+            contents.push_back(loadFile("test_2threads_t" + to_string(i) + "_" + pattern + ".txt"));
+        }
+        double time = measureExecution([&]() {
+            runThreads(data, 2, pattern, contents);
+        });
+        cout << pattern << ": " << time << " ms\n";
+    }
 
-    // matching
-    timer.reset();
-    thread t1_m(processFile, ref(data), "test_2threads_t1_matching.txt");
-    thread t2_m(processFile, ref(data), "test_2threads_t2_matching.txt");
-    t1_m.join();
-    t2_m.join();
-    cout << "Matching: " << timer.elapsed_ms() << " ms\n";
-
-    // equal
-    timer.reset();
-    thread t1_e(processFile, ref(data), "test_2threads_t1_equal.txt");
-    thread t2_e(processFile, ref(data), "test_2threads_t2_equal.txt");
-    t1_e.join();
-    t2_e.join();
-    cout << "Equal: " << timer.elapsed_ms() << " ms\n";
-
-    // custom
-    timer.reset();
-    thread t1_mis(processFile, ref(data), "test_2threads_t1_custom.txt");
-    thread t2_mis(processFile, ref(data), "test_2threads_t2_custom.txt");
-    t1_mis.join();
-    t2_mis.join();
-    cout << "Custom: " << timer.elapsed_ms() << " ms\n";
-
+    // 3 threads
     cout << "\n--- 3 threads ---\n";
-
-    // matching
-    timer.reset();
-    thread t1_3m(processFile, ref(data), "test_3threads_t1_matching.txt");
-    thread t2_3m(processFile, ref(data), "test_3threads_t2_matching.txt");
-    thread t3_3m(processFile, ref(data), "test_3threads_t3_matching.txt");
-    t1_3m.join();
-    t2_3m.join();
-    t3_3m.join();
-    cout << "Matching: " << timer.elapsed_ms() << " ms\n";
-
-    // equal
-    timer.reset();
-    thread t1_3e(processFile, ref(data), "test_3threads_t1_equal.txt");
-    thread t2_3e(processFile, ref(data), "test_3threads_t2_equal.txt");
-    thread t3_3e(processFile, ref(data), "test_3threads_t3_equal.txt");
-    t1_3e.join();
-    t2_3e.join();
-    t3_3e.join();
-    cout << "Equal: " << timer.elapsed_ms() << " ms\n";
-
-    // custom
-    timer.reset();
-    thread t1_3mis(processFile, ref(data), "test_3threads_t1_custom.txt");
-    thread t2_3mis(processFile, ref(data), "test_3threads_t2_custom.txt");
-    thread t3_3mis(processFile, ref(data), "test_3threads_t3_custom.txt");
-    t1_3mis.join();
-    t2_3mis.join();
-    t3_3mis.join();
-    cout << "Custom: " << timer.elapsed_ms() << " ms\n";
+    for (const auto& pattern : patterns) {
+        vector<string> contents;
+        for (int i = 1; i <= 3; i++) {
+            contents.push_back(loadFile("test_3threads_t" + to_string(i) + "_" + pattern + ".txt"));
+        }
+        double time = measureExecution([&]() {
+            runThreads(data, 3, pattern, contents);
+        });
+        cout << pattern << ": " << time << " ms\n";
+    }
 
     return 0;
 }
