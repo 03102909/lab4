@@ -101,31 +101,15 @@ void Generator::generateCustomFile(const string& filename, int operations_count)
 }
 
 void Generator::generateAllFiles(int operations_per_file) {
-    // 1 thread
     generateMatchingFile("test_1thread_matching.txt", operations_per_file);
     generateEqualFile("test_1thread_equal.txt", operations_per_file);
     generateCustomFile("test_1thread_custom.txt", operations_per_file);
 
-    // 2 threads
-    generateMatchingFile("test_2threads_t1_matching.txt", operations_per_file / 2);
-    generateMatchingFile("test_2threads_t2_matching.txt", operations_per_file / 2);
-
-    generateEqualFile("test_2threads_t1_equal.txt", operations_per_file / 2);
-    generateEqualFile("test_2threads_t2_equal.txt", operations_per_file / 2);
-
-    generateCustomFile("test_2threads_t1_custom.txt", operations_per_file / 2);
-    generateCustomFile("test_2threads_t2_custom.txt", operations_per_file / 2);
-
-    // 3 threads
-    generateMatchingFile("test_3threads_t1_matching.txt", operations_per_file / 3);
-    generateMatchingFile("test_3threads_t2_matching.txt", operations_per_file / 3);
-    generateMatchingFile("test_3threads_t3_matching.txt", operations_per_file / 3);
-
-    generateEqualFile("test_3threads_t1_equal.txt", operations_per_file / 3);
-    generateEqualFile("test_3threads_t2_equal.txt", operations_per_file / 3);
-    generateEqualFile("test_3threads_t3_equal.txt", operations_per_file / 3);
-
-    generateCustomFile("test_3threads_t1_custom.txt", operations_per_file / 3);
-    generateCustomFile("test_3threads_t2_custom.txt", operations_per_file / 3);
-    generateCustomFile("test_3threads_t3_custom.txt", operations_per_file / 3);
+    generateMatchingFile("test_2threads_matching.txt", operations_per_file / 2);
+    generateEqualFile("test_2threads_equal.txt", operations_per_file / 2);
+    generateCustomFile("test_2threads_custom.txt", operations_per_file / 2);
+    
+    generateMatchingFile("test_3threads_matching.txt", operations_per_file / 3);
+    generateEqualFile("test_3threads_equal.txt", operations_per_file / 3);
+    generateCustomFile("test_3threads_custom.txt", operations_per_file / 3);
 }
