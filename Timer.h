@@ -12,10 +12,6 @@ public:
         return std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     }
 
-    void reset() {
-        start = clock::now();
-    }
-
 private:
     clock::time_point start;
 
