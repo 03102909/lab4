@@ -11,19 +11,7 @@
 using namespace std;
 using namespace chrono;
 
-string loadFile(const string& filename) {
-    ifstream file(filename);
-    if (!file.is_open()) {
-        cerr << "Error opening file: " << filename << endl;
-        return "";
-    }
-    stringstream buffer;
-    buffer << file.rdbuf();
-    return buffer.str();
-}
-
-void processCommands(MyStruct& data, const string& commands) {
-    istringstream stream(commands);
+void processCommands(MyStruct& data, istringstream& stream) {
     string operation;
 
     while (stream >> operation) {
@@ -50,12 +38,12 @@ double measureExecution(Func&& func) {
     return timer.elapsed_ms();
 }
 
-void runThreads(MyStruct& data, int threadCount, const string& pattern, const vector<string>& fileContents) {
+void runThreads(MyStruct& data, vector<istringstream>& streams) {
     vector<thread> threads;
-    threads.reserve(threadCount);
+    threads.reserve(streams.size());
 
-    for (int i = 0; i < threadCount; i++) {
-        threads.emplace_back(processCommands, ref(data), ref(fileContents[i]));
+    for (auto& stream : streams) {
+        threads.emplace_back(processCommands, ref(data), ref(stream));
     }
 
     for (auto& t : threads) {
@@ -77,38 +65,57 @@ int main() {
     MyStruct data;
     vector<string> patterns = {"matching", "equal", "custom"};
 
-    // 1 thread
     cout << "\n--- 1 thread ---\n";
     for (const auto& pattern : patterns) {
-        string content = loadFile("test_1thread_" + pattern + ".txt");
+        ifstream file("test_1thread_" + pattern + ".txt");
+        string line, content;
+        while (getline(file, line)) {
+            content += line + "\n";
+        }
+        file.close();
+
+        istringstream stream(content);
         double time = measureExecution([&]() {
-            processCommands(data, content);
+            processCommands(data, stream);
         });
         cout << pattern << ": " << time << " ms\n";
     }
 
-    // 2 threads
     cout << "\n--- 2 threads ---\n";
     for (const auto& pattern : patterns) {
-        vector<string> contents;
-        for (int i = 1; i <= 2; i++) {
-            contents.push_back(loadFile("test_2threads_t" + to_string(i) + "_" + pattern + ".txt"));
+        ifstream file("test_2threads_" + pattern + ".txt");
+        string line, content;
+        while (getline(file, line)) {
+            content += line + "\n";
         }
+        file.close();
+
+        vector<istringstream> streams;
+        streams.emplace_back(content);
+        streams.emplace_back(content);
+
         double time = measureExecution([&]() {
-            runThreads(data, 2, pattern, contents);
+            runThreads(data, streams);
         });
         cout << pattern << ": " << time << " ms\n";
     }
 
-    // 3 threads
     cout << "\n--- 3 threads ---\n";
     for (const auto& pattern : patterns) {
-        vector<string> contents;
-        for (int i = 1; i <= 3; i++) {
-            contents.push_back(loadFile("test_3threads_t" + to_string(i) + "_" + pattern + ".txt"));
+        ifstream file("test_3threads_" + pattern + ".txt");
+        string line, content;
+        while (getline(file, line)) {
+            content += line + "\n";
         }
+        file.close();
+
+        vector<istringstream> streams;
+        streams.emplace_back(content);
+        streams.emplace_back(content);
+        streams.emplace_back(content);
+
         double time = measureExecution([&]() {
-            runThreads(data, 3, pattern, contents);
+            runThreads(data, streams);
         });
         cout << pattern << ": " << time << " ms\n";
     }
